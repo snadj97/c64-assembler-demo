@@ -33,6 +33,6 @@ run: all
 	$(EMULATOR) $(EMULATOR_FALGS)
 
 clean:
-	rm build/*
+	rm build/* -f
 
 .SILENT: all
