@@ -80,6 +80,12 @@ Start out by specifying processor:
 
 - [6502 Opcodes (ASM instructions?)](http://www.6502.org/tutorials/6502opcodes.html)
 
+### Number literals
+
+- Decimal:  `#123`
+- Binary:   `#%10110100`
+- Hex:      `#$12FE`
+
 ### 6502 Registers
 
 Info source: [Assembly in one step](https://dwheeler.com/6502/oneelkruns/asm1step.html)
