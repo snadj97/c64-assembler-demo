@@ -21,7 +21,37 @@ warmstart
     STA $d020   ; Store accumulator value (00/black) into border color
 
     LDA #8
-    STA $0400
+    STA $0436
+
+    LDA #5
+    STA $0437
+
+    LDA #12
+    STA $0438
+
+    LDA #12
+    STA $0439
+
+    LDA #15
+    STA $043A
+
+    LDA #32
+    STA $043B
+
+    LDA #23
+    STA $043C
+
+    LDA #15
+    STA $043D
+
+    LDA #18
+    STA $043E
+
+    LDA #12
+    STA $043F
+
+    LDA #4
+    STA $0440
 
     JMP loop
 
