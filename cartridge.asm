@@ -6,7 +6,7 @@
     .word warmstart             ; warmstart vector
     .byte $C3,$C2,$CD,$38,$30   ; "CMB80". Autostart string
 
-coldstart
+coldstart:
     SEI         ;Set Interrupt
     STX $d016   ;Store register x (but why?)
     JSR $fda3   ;Prepare IRQ
@@ -15,9 +15,9 @@ coldstart
     JSR $ff5b;  ;Init video
     CLI         ;Clear interrupt
 
-warmstart
+warmstart:
 ; Setup code
-    LDA #$55    ; Load color 00 (black) into accumulator
+    LDA #$00    ; Load color 00 (black) into accumulator
     STA $d020   ; Store accumulator value (00/black) into border color
 
     LDA #8
