@@ -86,6 +86,36 @@ Start out by specifying processor:
 - Binary:   `#%10110100`
 - Hex:      `#$12FE`
 
+### Variables
+
+TODO: Figure out how to store variables in system RAM. Creating
+variables as suggested in several tutorials does not work, since
+they will be places on the cartridge and cartridge memory is ROM.
+
+```
+playerLives: .byte 0 ; This does not work! Should allocate memory in the C64 RAM instead!
+
+```
+
+### Tables:
+
+```
+myTable:
+.byte 1
+.byte 2
+.byte 3
+.byte 4
+
+...
+
+LDX #0
+LDA myTable,X   ; Loads 1 into accumulator
+
+LDX #2
+LDA myTable,X   ; Loads 3 into accumulator
+
+```
+
 ### 6502 Registers
 
 Info source: [Assembly in one step](https://dwheeler.com/6502/oneelkruns/asm1step.html)
