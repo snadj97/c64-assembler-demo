@@ -1,6 +1,7 @@
- PROCESSOR 6502
+    PROCESSOR 6502
 
- ORG $8000
+    SEG CODE    ; Main segment (necessary for compilation when using segments elsewhere...)
+    ORG $8000   ; Cartridge entry point
 
     .word coldstart             ; coldstart vector
     .word warmstart             ; warmstart vector
@@ -17,9 +18,43 @@ coldstart:
 
 warmstart:
 ; Setup code
-    LDA #$00    ; Load color 00 (black) into accumulator
-    STA $d020   ; Store accumulator value (00/black) into border color
+    LDA #$05
+    STA $0400
 
+    JSR hello_world
+
+    JMP loop
+
+
+loop:
+; Loop start
+    LDA #0    ; Raster line for comparison
+compare:
+    CMP $d012
+    BNE compare
+
+    INC i
+    LDA #128
+    CMP i
+    BNE loop
+
+    LDA #0
+    STA i
+
+    LDA var2
+    STA $d020   ; Store accumulator value into border color
+
+    LDA var1
+    STA $0442
+
+    INC var1
+    INC var2
+
+
+; Loop end
+    JMP loop
+
+hello_world:
     LDA #8
     STA $0436
 
@@ -53,11 +88,15 @@ warmstart:
     LDA #4
     STA $0440
 
-    JMP loop
+    RTS
 
-loop:
-; Loop code
-    JMP loop
-
- ORG $9fff       ;fill up to -$9fff (or $bfff if 16K)
+;fill up to -$9fff (or $bfff if 16K)
+    ORG $9fff
     .byte $FF
+
+; Data segment
+    SEG.U variables  ; Uninitialized segment (not written to binary)
+    ORG $0100       ; C64 RAM location - stack
+var1:   .byte 1     ; $0100
+var2:   .byte 0     ; $0101
+i:      .byte 0     ; $0102
