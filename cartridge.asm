@@ -9,7 +9,7 @@
 
 coldstart:
     SEI         ;Set Interrupt
-    STX $d016   ;Store register x (but why?)
+    STX $d016   ;Store register x (but why?) - it seems 0xFF is stored in X from the start of the Commodore64. This is stored in $d016 for initialization.
     JSR $fda3   ;Prepare IRQ
     JSR $fd50   ;Init memory. Rewrite this routine to speed up boot process
     JSR $fd15   ;Init I/O
@@ -17,39 +17,23 @@ coldstart:
     CLI         ;Clear interrupt
 
 warmstart:
-; Setup code
-    LDA #$05
-    STA $0400
+; Setup code start
+    LDA #100
+    JSR bytetohex
+
+    TYA
+    JSR $ffd2
+    TXA
+    JSR $ffd2
 
     JSR hello_world
 
-    JMP loop
 
+; Setup code end
+    JMP loop
 
 loop:
 ; Loop start
-    LDA #0    ; Raster line for comparison
-compare:
-    CMP $d012
-    BNE compare
-
-    INC i
-    LDA #128
-    CMP i
-    BNE loop
-
-    LDA #0
-    STA i
-
-    LDA var2
-    STA $d020   ; Store accumulator value into border color
-
-    LDA var1
-    STA $0442
-
-    INC var1
-    INC var2
-
 
 ; Loop end
     JMP loop
@@ -90,13 +74,35 @@ hello_world:
 
     RTS
 
+bytetohex:
+.block:
+    PHA
+    LSR
+    LSR
+    LSR
+    LSR
+    TAX
+    LDA hexits,X
+    STA tmp
+    PLA
+    AND #%00001111
+    TAX
+    LDA hexits,X
+    TAX
+    LDY tmp
+    RTS
+
+
+hexits: .byte "0123456789abcdef"
+
 ;fill up to -$9fff (or $bfff if 16K)
     ORG $9fff
     .byte $FF
 
-; Data segment
+; Variable data segment - data that can change
     SEG.U variables  ; Uninitialized segment (not written to binary)
     ORG $0100       ; C64 RAM location - stack
 var1:   .byte 1     ; $0100
 var2:   .byte 0     ; $0101
 i:      .byte 0     ; $0102
+tmp:    .byte 0
