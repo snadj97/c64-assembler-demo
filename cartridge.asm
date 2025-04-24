@@ -18,7 +18,7 @@ coldstart:
 
 warmstart:
 ; Setup code start
-    LDA #100
+    LDA #255
     JSR bytetohex
 
     TYA
@@ -75,25 +75,28 @@ hello_world:
     RTS
 
 bytetohex:
-.block:
-    PHA
+; in:   A  (byte)
+; out:  X  (hi-nibble)
+;       Y  (lo-nibble)
+    PHA     ; Push A to stack. A preserves value
+    LSR     ; Shift A right 4 times (127: 0x7F -> 0111 1111 >> 0000 0111)
     LSR
     LSR
     LSR
-    LSR
-    TAX
-    LDA hexits,X
-    STA tmp
-    PLA
-    AND #%00001111
-    TAX
-    LDA hexits,X
-    TAX
-    LDY tmp
+    TAX             ; Transfer A to X -> X = 0000 0111
+    LDA hexits,X    ; Look up value in character table: 0x07 -> '7' and load into A
+    STA tmp         ; Store A in variable tmp (in RAM, see SEG.U variables)
+
+    PLA             ; Pull original A value into A (0x7F)
+    AND #%00001111  ; AND A to get LSBs (0x7F & 0x0F -> 0x0F: 0000 1111)
+    TAX             ; Transfer A to X -> X = 0000 1111
+    LDA hexits,X    ; Look up value in character table: 0x0F -> 'f' and load into A
+    TAX             ; Transfer A to X (hi-nibble output)
+    LDY tmp         ; Load Y with value stored in 'tmp' (low-nibble output)
     RTS
 
 
-hexits: .byte "0123456789abcdef"
+hexits: .byte "0123456789ABCDEF"    ; IMPORTANT that characters here are capital letters!
 
 ;fill up to -$9fff (or $bfff if 16K)
     ORG $9fff
