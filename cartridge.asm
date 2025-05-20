@@ -8,11 +8,12 @@
     BYTE $c3,$c2,$cd,$38,$30   ; "CMB80". Autostart string
 
 ; Some "defines"
-BORDER      = $d020
-BACKGROUND  = $d021
-PLOT        = $fff0 ; Set cursor location. X (row), Y (col) as inputs
-CHROUT      = $ffd2 ; Output character to current cursor location
-SHOW_CURSOR = $00cc ; 0 means ON, >= 1 means OFF
+BORDER       = $d020
+BACKGROUND   = $d021
+PLOT         = $fff0    ; Set cursor location. X (row), Y (col) as inputs
+CHROUT       = $ffd2    ; Output character to current cursor location
+CURSOR_SHOW  = $00cc    ; 0 means ON, >= 1 means OFF
+CURSOR_COLOR = $0286
 
 
 coldstart:
@@ -34,7 +35,7 @@ warmstart:
     ; All characters to green
     JSR charcolor ; For storing characters in the char matrix
     LDA #$05
-    STA $0286     ; Change cursor color to green
+    STA CURSOR_COLOR     ; Change cursor color to green
 
 
     ; ; Convert a byte value to a hex string (2 chars)...
@@ -57,8 +58,7 @@ warmstart:
     JSR PLOT
 
     LDA #0
-    STA SHOW_CURSOR
-
+    STA CURSOR_SHOW
 
 ; } Setup end
     JMP loop
