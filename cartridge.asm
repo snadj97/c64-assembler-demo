@@ -31,10 +31,10 @@ warmstart:
     STA BACKGROUND
     STA BORDER
 
-    TYA
-    JSR $ffd2
-    TXA
-    JSR $ffd2
+    ; All characters to green
+    JSR charcolor ; For storing characters in the char matrix
+    LDA #$05
+    STA $0286     ; Change cursor color to green
 
     JSR hello_world
 
@@ -48,41 +48,51 @@ loop:
 ; Loop end
     JMP loop
 
-hello_world:
-    LDA #8
-    STA $0436
+charcolor:
+; Set character color to green for all screen characters
+; This is usefule, if characters are placed manually. Otherwise,
+; consider setting the cursor text color setting $0286 and outputting
+; characters to screen using JSR $ffd2
+    SUBROUTINE
 
-    LDA #5
-    STA $0437
+; Load start address for setting character color ($d800)
+    LDA #$00
+    STA $08     ; 16-bit value, low
+    LDA #$d8
+    STA $09     ; 16-bit value, high
+    LDX #0      ; Set X to 0 (no address offset)
 
-    LDA #12
-    STA $0438
+.loop
 
-    LDA #12
-    STA $0439
+    LDA #$05    ; Green
+    STA ($08,X) ; Store A in address [$01, $00] -> $d800
 
-    LDA #15
-    STA $043A
+    CLC
+    LDA $08
+    ADC #1
+    STA $08
 
-    LDA #32
-    STA $043B
+    BVS .inchigh ; If overflow, increment high byte
 
-    LDA #23
-    STA $043C
+.comp
+; Compare to highest color address ($dbe7) and loop until reached
+    LDA $08
+    CMP #$e7
+    BNE .loop
 
-    LDA #15
-    STA $043D
-
-    LDA #18
-    STA $043E
-
-    LDA #12
-    STA $043F
-
-    LDA #4
-    STA $0440
+    LDA $09
+    CMP #$db
+    BNE .loop
 
     RTS
+
+.inchigh:
+    CLC
+    LDA $09
+    ADC #1
+    STA $09
+
+    JMP .comp
 
 bytetohex:
 ; in:   A  (byte)
@@ -108,14 +118,16 @@ bytetohex:
 
 hexits: .byte "0123456789ABCDEF"    ; IMPORTANT that characters here are capital letters!
 
-;fill up to -$9fff (or $bfff if 16K)
+; EOF - Fill up to -$9fff (or $bfff if 16K)
     ORG $9fff
-    .byte $FF
+    BYTE $FF
 
 ; Variable data segment - data that can change
-    SEG.U variables  ; Uninitialized segment (not written to binary)
+;; Note: The 'U' below specifies the segment to be uninitialized.
+;; This means that the variables will not be stored in the binary.
+;; This is useful for addressing memory addresses in the C64 RAM,
+;; as those addresses are outside of the cartridge memory range.
+    SEG.U variables
     ORG $0100       ; C64 RAM location - stack
-var1:   .byte 1     ; $0100
-var2:   .byte 0     ; $0101
-i:      .byte 0     ; $0102
-tmp:    .byte 0
+i:      BYTE 0
+tmp:    BYTE 0
