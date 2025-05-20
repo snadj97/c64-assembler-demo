@@ -47,10 +47,12 @@ warmstart:
     ; TXA
     ; JSR CHROUT
 
+    ; Print 'HELLO WORLD' in the middle of the screen.
     JSR hello_world
 
 
-; Setup code end
+
+; } Setup end
     JMP loop
 
 loop:
@@ -58,6 +60,28 @@ loop:
 
 ; Loop end
     JMP loop
+
+hello_world:
+    SUBROUTINE
+    ; Set cursor position
+    CLC
+    LDX #2
+    LDY #15
+    JSR PLOT
+
+    ; Loop through constant, zero-terminated string
+    LDX #0
+.loop:
+    LDA hello_world_str,X
+    JSR CHROUT
+    INX
+    CMP #0
+    BNE .loop
+
+    LDA #'!
+    JSR CHROUT
+
+    RTS
 
 charcolor:
 ; Set character color to green for all screen characters
@@ -127,7 +151,9 @@ bytetohex:
     RTS
 
 
-hexits: .byte "0123456789ABCDEF"    ; IMPORTANT that characters here are capital letters!
+; Constants
+hexits: BYTE "0123456789ABCDEF"    ; IMPORTANT that characters here are capital letters!
+hello_world_str: BYTE "HELLO WORLD",0
 
 ; EOF - Fill up to -$9fff (or $bfff if 16K)
     ORG $9fff
