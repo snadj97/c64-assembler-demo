@@ -50,6 +50,14 @@ warmstart:
     ; Print 'HELLO WORLD' in the middle of the screen.
     JSR hello_world
 
+    ; Set cursor position
+    CLC
+    LDX #6
+    LDY #0
+    JSR PLOT
+
+    LDA #0
+    STA SHOW_CURSOR
 
 
 ; } Setup end
