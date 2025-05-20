@@ -36,6 +36,17 @@ warmstart:
     LDA #$05
     STA $0286     ; Change cursor color to green
 
+
+    ; ; Convert a byte value to a hex string (2 chars)...
+    ; LDA #127
+    ; JSR bytetohex
+
+    ; ; ... and print them to the screen
+    ; TYA
+    ; JSR CHROUT
+    ; TXA
+    ; JSR CHROUT
+
     JSR hello_world
 
 
