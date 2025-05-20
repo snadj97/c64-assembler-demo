@@ -25,9 +25,11 @@ coldstart:
     CLI         ;Clear interrupt
 
 warmstart:
-; Setup code start
-    LDA #255
-    JSR bytetohex
+; Setup start {
+    ; Background and border color to black
+    LDA #0
+    STA BACKGROUND
+    STA BORDER
 
     TYA
     JSR $ffd2
