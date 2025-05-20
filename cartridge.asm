@@ -3,9 +3,17 @@
     SEG CODE    ; Main segment (necessary for compilation when using segments elsewhere...)
     ORG $8000   ; Cartridge entry point
 
-    .word coldstart             ; coldstart vector
-    .word warmstart             ; warmstart vector
-    .byte $C3,$C2,$CD,$38,$30   ; "CMB80". Autostart string
+    WORD coldstart             ; coldstart vector
+    WORD warmstart             ; warmstart vector
+    BYTE $c3,$c2,$cd,$38,$30   ; "CMB80". Autostart string
+
+; Some "defines"
+BORDER      = $d020
+BACKGROUND  = $d021
+PLOT        = $fff0 ; Set cursor location. X (row), Y (col) as inputs
+CHROUT      = $ffd2 ; Output character to current cursor location
+SHOW_CURSOR = $00cc ; 0 means ON, >= 1 means OFF
+
 
 coldstart:
     SEI         ;Set Interrupt
