@@ -14,6 +14,8 @@ PLOT         = $fff0    ; Set cursor location. X (row), Y (col) as inputs
 CHROUT       = $ffd2    ; Output character to current cursor location
 CURSOR_SHOW  = $00cc    ; 0 means ON, >= 1 means OFF
 CURSOR_COLOR = $0286
+CURSOR_PHASE = $00cf
+GETIN        = $ffe4
 
 
 coldstart:
@@ -61,13 +63,29 @@ warmstart:
     STA CURSOR_SHOW
 
 ; } Setup end
-    JMP loop
 
-loop:
+main_loop:
 ; Loop start
 
+wait_char:
+    JSR GETIN
+    CMP #0
+    BEQ wait_char
+
+    CMP #$0d
+    BNE print_char
+
+wait_cursor_off:
+    LDA CURSOR_PHASE
+    BNE wait_cursor_off
+    LDA #$0d
+
+print_char:
+    JSR CHROUT
+
+
 ; Loop end
-    JMP loop
+    JMP main_loop
 
 hello_world:
     SUBROUTINE
