@@ -69,15 +69,44 @@ wait_char:  JSR GETIN
             CMP #0
             BEQ wait_char
 
-            CMP #$0d
-            BNE print_char
+            CMP #$14    ; If DELETE, branch
+            BEQ del_char
+            CMP #$0d    ; If ENTER, branch
+            BEQ process_input
 
-wait_cursor_off:    LDA CURSOR_PHASE
-                    BNE wait_cursor_off
-                    LDA #$0d
+add_char:   LDX c_cnt
+            CPX #10
+            BEQ loop_end    ; Skip if 10
+            STA input,X
+            INX
+            STX c_cnt
+            JSR CHROUT
+            JMP loop_end
 
-print_char: JSR CHROUT
+del_char:   LDX c_cnt
+            CPX #0
+            BEQ loop_end    ; Skip if 0
+            DEX
+            STX c_cnt
+            PHA
+            LDA #0
+            STA input,X
+            PLA
+            JSR CHROUT
+            JMP loop_end
 
+process_input:  SUBROUTINE
+                LDX #0
+
+.loop:          LDA input,X
+                JSR CHROUT
+                INX
+                CMP #0
+                BNE .loop
+
+                JMP loop_end
+
+loop_end:
 ; Loop end
     JMP main_loop
 
@@ -101,7 +130,6 @@ hello_world:    SUBROUTINE
         JSR CHROUT
 
         RTS
-
 
 ; Set character color to green for all screen characters
 ; This is usefule, if characters are placed manually. Otherwise,
@@ -178,6 +206,8 @@ hello_world_str:    BYTE "HELLO WORLD",0
 ;; This is useful for addressing memory addresses in the C64 RAM,
 ;; as those addresses are outside of the cartridge memory range.
     SEG.U variables
-    ORG $0100       ; C64 RAM location - stack
+    ORG $0200       ; C64 RAM location - stack
 i:      BYTE 0
 tmp:    BYTE 0
+c_cnt:  BYTE 0
+input:  BYTE 0,0,0,0,0,0,0,0,0,0,0  ; Length 10, zero-terminated
