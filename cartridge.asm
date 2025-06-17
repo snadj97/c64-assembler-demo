@@ -96,6 +96,13 @@ del_char:   LDX c_cnt
             JMP loop_end
 
 process_input:  SUBROUTINE
+
+.wait:          LDA CURSOR_PHASE
+                BNE .wait
+
+                LDA #$0d
+                JSR CHROUT
+
                 LDX #0
 
 .loop:          LDA input,X
