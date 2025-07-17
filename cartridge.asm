@@ -17,7 +17,10 @@ CURSOR_COLOR = $0286
 CURSOR_PHASE = $00cf
 GETIN        = $ffe4
 
+password:   BYTE "MYPASSWORD",0
 
+PW_CORRECT:     BYTE "PASSWORD IS CORRECT!",0
+PW_INCORRECT:   BYTE "PASSWORD IS INCORRECT!",0
 
 coldstart:  SEI         ;Set Interrupt
             STX $d016   ;Store register x (but why?) - it seems 0xFF is stored in X from the start of the Commodore64. This is stored in $d016 for initialization.
@@ -58,7 +61,6 @@ warmstart:  LDA #0      ; Background and border color to black
             LDX #6
             LDY #0
             JSR PLOT
-
             LDA #0
             STA CURSOR_SHOW
 
@@ -68,7 +70,6 @@ main_loop:
 wait_char:  JSR GETIN
             CMP #0
             BEQ wait_char
-
             CMP #$14    ; If DELETE, branch
             BEQ del_char
             CMP #$0d    ; If ENTER, branch
@@ -96,88 +97,93 @@ del_char:   LDX c_cnt
             JMP loop_end
 
 process_input:  SUBROUTINE
-
-.wait:          LDA CURSOR_PHASE
+.wait:          LDA CURSOR_PHASE    ; Wait cursor phase off
                 BNE .wait
-
                 LDA #$0d
                 JSR CHROUT
-
-                LDX #0
-
+                LDX #0      ; Initialize X as iterator
 .loop:          LDA input,X
-                JSR CHROUT
-                INX
+                CMP password,X  ; Compare input at idx X with password at same index
+                BNE .incorrect  ; If characters are not equal jump to incorrect
                 CMP #0
-                BNE .loop
-
-                JMP loop_end
+                BEQ .correct    ; If character is 0, jump to correct
+                INX
+                JMP .loop
+.incorrect:     JSR pw_incorrect
+                JMP .done
+.correct:       JSR pw_correct
+.done:
 
 loop_end:
 ; Loop end
     JMP main_loop
 
 hello_world:    SUBROUTINE
-    ; Set cursor position
-    CLC
-    LDX #2
-    LDY #15
-    JSR PLOT
-
-    ; Loop through constant, zero-terminated string
-    LDX #0
-
+        CLC
+        LDX #2
+        LDY #15
+        JSR PLOT    ; Set cursor position
+        LDX #0      ; Loop through constant, zero-terminated string
 .loop:  LDA hello_world_str,X
         JSR CHROUT
         INX
         CMP #0
         BNE .loop
-
         LDA #'!
         JSR CHROUT
-
         RTS
+
+pw_correct: SUBROUTINE
+            LDX #0
+.loop:      LDA PW_CORRECT,X
+            JSR CHROUT
+            INX
+            CMP #0
+            BNE .loop
+            LDA #$14
+            JSR CHROUT
+            RTS
+
+pw_incorrect:   SUBROUTINE
+                LDX #0
+.loop:          LDA PW_INCORRECT,X
+                JSR CHROUT
+                INX
+                CMP #0
+                BNE .loop
+                LDA #$14
+                JSR CHROUT
+                RTS
 
 ; Set character color to green for all screen characters
 ; This is usefule, if characters are placed manually. Otherwise,
 ; consider setting the cursor text color setting $0286 and outputting
 ; characters to screen using JSR $ffd2
-charcolor:    SUBROUTINE
-    ; Load start address for setting character color ($d800)
-    LDA #$00
-    STA $08     ; 16-bit value, low
-    LDA #$d8
-    STA $09     ; 16-bit value, high
-    LDX #0      ; Set X to 0 (no address offset)
-
-.loop   LDA #$05    ; Green
-        STA ($08,X) ; Store A in address [$01, $00] -> $d800
-
-        CLC
-        LDA $08
-        ADC #1
-        STA $08
-
-        BVS .inchigh ; If overflow, increment high byte
-
-; Compare to highest color address ($dbe7) and loop until reached
-.comp   LDA $08
-        CMP #$e7
-        BNE .loop
-
-        LDA $09
-        CMP #$db
-        BNE .loop
-
-        RTS
-
+charcolor:  SUBROUTINE
+            LDA #$00    ; Load start address for setting character color ($d800)
+            STA $08     ; 16-bit value, low
+            LDA #$d8
+            STA $09     ; 16-bit value, high
+            LDX #0      ; Set X to 0 (no address offset)
+.loop       LDA #$05    ; Green
+            STA ($08,X) ; Store A in address [$01, $00] -> $d800
+            CLC
+            LDA $08
+            ADC #1
+            STA $08
+            BVS .inchigh ; If overflow, increment high byte
+.comp       LDA $08     ; Compare to highest color address ($dbe7) and loop until reached
+            CMP #$e7
+            BNE .loop
+            LDA $09
+            CMP #$db
+            BNE .loop
+            RTS
 .inchigh:   CLC
             LDA $09
             ADC #1
             STA $09
-
             JMP .comp
-
 
 ; in:   A  (byte)
 ; out:  X  (hi-nibble)
@@ -190,7 +196,6 @@ bytetohex:  PHA     ; Push A to stack. A preserves value
             TAX             ; Transfer A to X -> X = 0000 0111
             LDA hexits,X    ; Look up value in character table: 0x07 -> '7' and load into A
             STA tmp         ; Store A in variable tmp (in RAM, see SEG.U variables)
-
             PLA             ; Pull original A value into A (0x7F)
             AND #%00001111  ; AND A to get LSBs (0x7F & 0x0F -> 0x0F: 0000 1111)
             TAX             ; Transfer A to X -> X = 0000 1111
