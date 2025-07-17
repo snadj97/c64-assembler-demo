@@ -30,6 +30,15 @@ password:   BYTE "MYPASSWORD",0
 PW_CORRECT:     BYTE "PASSWORD IS CORRECT!",0
 PW_INCORRECT:   BYTE "PASSWORD IS INCORRECT!",0
 
+RS = $ea
+LS = $f4
+
+BIG_BOX_TOP:    BYTE $cf,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$d0,0
+BIG_BOX_BOT:    BYTE $cc, $af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$fa,0
+
+SMALL_BOX_TOP:  BYTE $cf,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$d0
+SMALL_BOX_BOT:  BYTE $cc,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$fa
+
 coldstart:  SEI         ;Set Interrupt
             STX $d016   ;Store register x (but why?) - it seems 0xFF is stored in X from the start of the Commodore64. This is stored in $d016 for initialization.
             JSR $fda3   ;Prepare IRQ
@@ -50,10 +59,12 @@ warmstart:  LDA #0      ; Background and border color to black
             ; Print 'HELLO WORLD' in the middle of the screen.
             JSR hello_world
 
+            JSR draw_boxes
+
             ; Set cursor position
             CLC
-            LDX #6
-            LDY #0
+            LDX #12
+            LDY #15
             JSR PLOT
             LDA #0
             STA CURSOR_SHOW
@@ -118,6 +129,31 @@ del_char:   SUBROUTINE
             PLA
             JSR CHROUT
 .end        RTS
+
+draw_boxes: SUBROUTINE
+            CLC
+            LDX #0
+            LDY #0
+            JSR PLOT    ; Set cursor position
+            LDX #0      ; Loop through constant, zero-terminated string
+.loop_top:  LDA BIG_BOX_TOP,X
+            JSR CHROUT
+            INX
+            CMP #0
+            BNE .loop_top
+            LDA #
+            CLC
+            LDX #24
+            LDY #0
+            JSR PLOT    ; Set cursor position
+            LDX #0      ; Loop through constant, zero-terminated string
+.loop_bot:  LDA BIG_BOX_BOT,X
+            JSR CHROUT
+            INX
+            CMP #0
+            BNE .loop_bot
+
+            RTS
 
 process_input:  SUBROUTINE
 .wait:          LDA CURSOR_PHASE    ; Wait cursor phase off
