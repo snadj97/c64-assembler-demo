@@ -17,6 +17,10 @@ CURSOR_COLOR = $0286
 CURSOR_PHASE = $00cf
 GETIN        = $ffe4
 
+CHAR_ENTER  = $0d
+CHAR_DELETE = $14
+
+MAX_CHARS = 10
 password:   BYTE "MYPASSWORD",0
 
 PW_CORRECT:     BYTE "PASSWORD IS CORRECT!",0
@@ -30,9 +34,6 @@ coldstart:  SEI         ;Set Interrupt
             JSR $ff5b;  ;Init video
             CLI         ;Clear interrupt
 
-
-
-
 warmstart:  LDA #0      ; Background and border color to black
             STA BACKGROUND
             STA BORDER
@@ -41,17 +42,6 @@ warmstart:  LDA #0      ; Background and border color to black
             JSR charcolor ; For storing characters in the char matrix
             LDA #$05
             STA CURSOR_COLOR     ; Change cursor color to green
-
-
-            ; ; Convert a byte value to a hex string (2 chars)...
-            ; LDA #127
-            ; JSR bytetohex
-
-            ; ; ... and print them to the screen
-            ; TYA
-            ; JSR CHROUT
-            ; TXA
-            ; JSR CHROUT
 
             ; Print 'HELLO WORLD' in the middle of the screen.
             JSR hello_world
@@ -64,59 +54,26 @@ warmstart:  LDA #0      ; Background and border color to black
             LDA #0
             STA CURSOR_SHOW
 
+; ______________Loop start_____________
 main_loop:
-; Loop start
-
 wait_char:  JSR GETIN
             CMP #0
             BEQ wait_char
-            CMP #$14    ; If DELETE, branch
-            BEQ del_char
-            CMP #$0d    ; If ENTER, branch
-            BEQ process_input
+            CMP #CHAR_DELETE    ; If DELETE, branch
+            BEQ handle_del
+            CMP #CHAR_ENTER    ; If ENTER, branch
+            BEQ handle_in
 
-add_char:   LDX c_cnt
-            CPX #10
-            BEQ loop_end    ; Skip if 10
-            STA input,X
-            INX
-            STX c_cnt
-            JSR CHROUT
+handle_add: JSR add_char
             JMP loop_end
 
-del_char:   LDX c_cnt
-            CPX #0
-            BEQ loop_end    ; Skip if 0
-            DEX
-            STX c_cnt
-            PHA
-            LDA #0
-            STA input,X
-            PLA
-            JSR CHROUT
+handle_del: JSR del_char
             JMP loop_end
 
-process_input:  SUBROUTINE
-.wait:          LDA CURSOR_PHASE    ; Wait cursor phase off
-                BNE .wait
-                LDA #$0d
-                JSR CHROUT
-                LDX #0      ; Initialize X as iterator
-.loop:          LDA input,X
-                CMP password,X  ; Compare input at idx X with password at same index
-                BNE .incorrect  ; If characters are not equal jump to incorrect
-                CMP #0
-                BEQ .correct    ; If character is 0, jump to correct
-                INX
-                JMP .loop
-.incorrect:     JSR pw_incorrect
-                JMP .done
-.correct:       JSR pw_correct
-.done:
+handle_in:  JSR process_input
 
-loop_end:
-; Loop end
-    JMP main_loop
+loop_end:       JMP main_loop
+; ______________Loop end ________________
 
 hello_world:    SUBROUTINE
         CLC
@@ -133,6 +90,57 @@ hello_world:    SUBROUTINE
         JSR CHROUT
         RTS
 
+add_char:   SUBROUTINE
+            LDX c_cnt
+            CPX #MAX_CHARS
+            BEQ .end
+            STA input,X
+            INX
+            STX c_cnt
+            JSR CHROUT
+.end        RTS
+
+del_char:   SUBROUTINE
+            LDX c_cnt
+            CPX #0
+            BEQ .end
+            DEX
+            STX c_cnt
+            PHA
+            LDA #0
+            STA input,X
+            PLA
+            JSR CHROUT
+.end        RTS
+
+process_input:  SUBROUTINE
+.wait:          LDA CURSOR_PHASE    ; Wait cursor phase off
+                BNE .wait
+                LDA #CHAR_ENTER
+                JSR CHROUT
+                LDX #0      ; Initialize X as iterator
+.loop:          LDA input,X
+                CMP password,X  ; Compare input at idx X with password at same index
+                BNE .incorrect  ; If characters are not equal jump to incorrect
+                CMP #0
+                BEQ .correct    ; If character is 0, jump to correct
+                INX
+                JMP .loop
+.incorrect:     JSR pw_incorrect
+                JMP .done
+.correct:       JSR pw_correct
+.done:          JSR clear_password
+                RTS
+
+clear_password: SUBROUTINE
+                LDA #0
+.loop           LDX c_cnt
+                CPX #0
+                BEQ .end
+                JSR del_char
+                JMP .loop
+.end            RTS
+
 pw_correct: SUBROUTINE
             LDX #0
 .loop:      LDA PW_CORRECT,X
@@ -140,7 +148,7 @@ pw_correct: SUBROUTINE
             INX
             CMP #0
             BNE .loop
-            LDA #$14
+            LDA #CHAR_ENTER
             JSR CHROUT
             RTS
 
@@ -151,7 +159,7 @@ pw_incorrect:   SUBROUTINE
                 INX
                 CMP #0
                 BNE .loop
-                LDA #$14
+                LDA #CHAR_ENTER
                 JSR CHROUT
                 RTS
 
@@ -184,6 +192,15 @@ charcolor:  SUBROUTINE
             ADC #1
             STA $09
             JMP .comp
+
+test_byte:  SUBROUTINE
+            LDA #127        ; Convert a byte value to a hex string (2 chars)...
+            JSR bytetohex
+            TYA             ; ... and print them to the screen
+            JSR CHROUT
+            TXA
+            JSR CHROUT
+            RTS
 
 ; in:   A  (byte)
 ; out:  X  (hi-nibble)
