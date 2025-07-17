@@ -17,6 +17,10 @@ CURSOR_COLOR = $0286
 CURSOR_PHASE = $00cf
 GETIN        = $ffe4
 
+CIA2B_DDR    = $dd03
+CIA2B_DATA   = $dd01
+PIN_CFG      = %00000001 ; PB0 as output, all other inputs
+
 CHAR_ENTER  = $0d
 CHAR_DELETE = $14
 
@@ -53,6 +57,8 @@ warmstart:  LDA #0      ; Background and border color to black
             JSR PLOT
             LDA #0
             STA CURSOR_SHOW
+
+            JSR init_gpo
 
 ; ______________Loop start_____________
 main_loop:
@@ -150,6 +156,7 @@ pw_correct: SUBROUTINE
             BNE .loop
             LDA #CHAR_ENTER
             JSR CHROUT
+            JSR pb0_on
             RTS
 
 pw_incorrect:   SUBROUTINE
@@ -162,6 +169,21 @@ pw_incorrect:   SUBROUTINE
                 LDA #CHAR_ENTER
                 JSR CHROUT
                 RTS
+
+init_gpo:   SUBROUTINE
+            LDA #PIN_CFG
+            STA CIA2B_DDR
+            RTS
+
+pb0_on:     SUBROUTINE
+            LDA #1
+            STA CIA2B_DATA
+            RTS
+
+pb0_off:    SUBROUTINE
+            LDA #0
+            STA CIA2B_DATA
+            RTS
 
 ; Set character color to green for all screen characters
 ; This is usefule, if characters are placed manually. Otherwise,
@@ -194,7 +216,7 @@ charcolor:  SUBROUTINE
             JMP .comp
 
 test_byte:  SUBROUTINE
-            LDA #127        ; Convert a byte value to a hex string (2 chars)...
+            LDA CIA2B_DATA        ; Convert a byte value to a hex string (2 chars)...
             JSR bytetohex
             TYA             ; ... and print them to the screen
             JSR CHROUT
@@ -236,7 +258,7 @@ hello_world_str:    BYTE "HELLO WORLD",0
 ;; as those addresses are outside of the cartridge memory range.
     SEG.U variables
     ORG $0200       ; C64 RAM location - stack
-i:      BYTE 0
-tmp:    BYTE 0
-c_cnt:  BYTE 0
-input:  BYTE 0,0,0,0,0,0,0,0,0,0,0  ; Length 10, zero-terminated
+i:          BYTE 0
+tmp:        BYTE 0
+c_cnt:      BYTE 0
+input:      BYTE 0,0,0,0,0,0,0,0,0,0,0  ; Length 10, zero-terminated
