@@ -25,19 +25,6 @@ CHAR_ENTER  = $0d
 CHAR_DELETE = $14
 
 MAX_CHARS = 10
-password:   BYTE "MYPASSWORD",0
-
-PW_CORRECT:     BYTE "PASSWORD IS CORRECT!",0
-PW_INCORRECT:   BYTE "PASSWORD IS INCORRECT!",0
-
-RS = $ea
-LS = $f4
-
-BIG_BOX_TOP:    BYTE $cf,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$d0,0
-BIG_BOX_BOT:    BYTE $cc, $af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$fa,0
-
-SMALL_BOX_TOP:  BYTE $cf,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$d0
-SMALL_BOX_BOT:  BYTE $cc,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$fa
 
 coldstart:  SEI         ;Set Interrupt
             STX $d016   ;Store register x (but why?) - it seems 0xFF is stored in X from the start of the Commodore64. This is stored in $d016 for initialization.
@@ -47,27 +34,23 @@ coldstart:  SEI         ;Set Interrupt
             JSR $ff5b;  ;Init video
             CLI         ;Clear interrupt
 
-warmstart:  LDA #0      ; Background and border color to black
-            STA BACKGROUND
-            STA BORDER
+warmstart:  LDA #0
+            STA BACKGROUND  ; Background: black
+            STA BORDER      ; Border: black
 
-            ; All characters to green
-            JSR charcolor ; For storing characters in the char matrix
             LDA #$05
             STA CURSOR_COLOR     ; Change cursor color to green
 
-            ; Print 'HELLO WORLD' in the middle of the screen.
-            JSR hello_world
+            JSR big_box
+            JSR small_box
 
-            JSR draw_boxes
+            JSR print_title_1
+            JSR print_title_2
 
-            ; Set cursor position
             CLC
             LDX #12
             LDY #15
-            JSR PLOT
-            LDA #0
-            STA CURSOR_SHOW
+            JSR PLOT    ; Set cursor position
 
             JSR init_gpo
 
@@ -92,20 +75,31 @@ handle_in:  JSR process_input
 loop_end:       JMP main_loop
 ; ______________Loop end ________________
 
-hello_world:    SUBROUTINE
-        CLC
-        LDX #2
-        LDY #15
-        JSR PLOT    ; Set cursor position
-        LDX #0      ; Loop through constant, zero-terminated string
-.loop:  LDA hello_world_str,X
-        JSR CHROUT
-        INX
-        CMP #0
-        BNE .loop
-        LDA #'!
-        JSR CHROUT
-        RTS
+print_title_1:  SUBROUTINE
+                CLC
+                LDX #4
+                LDY #16
+                JSR PLOT
+                LDX #0
+.loop:          LDA title_1,X
+                JSR CHROUT
+                INX
+                CMP #0
+                BNE .loop
+                RTS
+
+print_title_2:  SUBROUTINE
+                CLC
+                LDX #7
+                LDY #10
+                JSR PLOT
+                LDX #0
+.loop:          LDA title_2,X
+                JSR CHROUT
+                INX
+                CMP #0
+                BNE .loop
+                RTS
 
 add_char:   SUBROUTINE
             LDX c_cnt
@@ -123,14 +117,17 @@ del_char:   SUBROUTINE
             BEQ .end
             DEX
             STX c_cnt
-            PHA
             LDA #0
             STA input,X
-            PLA
+            LDA #$9d
+            JSR CHROUT
+            LDA #$20
+            JSR CHROUT
+            LDA #$9d
             JSR CHROUT
 .end        RTS
 
-draw_boxes: SUBROUTINE
+big_box:    SUBROUTINE
             CLC
             LDX #0
             LDY #0
@@ -141,25 +138,74 @@ draw_boxes: SUBROUTINE
             INX
             CMP #0
             BNE .loop_top
-            LDA #
+            LDA #LS
+            JSR CHROUT
+            LDX #1
+.loop_side: LDY #39
             CLC
+            JSR PLOT
+            LDA #RS
+            JSR CHROUT
+            LDA #LS
+            JSR CHROUT
+            INX
+            CPX #23
+            BNE .loop_side
+            CLC
+            JSR PLOT
+            LDA #RS
+            JSR CHROUT
+            LDA #$05
+            STA $dbe7
+            LDA #$7a
+            STA $07e7
             LDX #24
             LDY #0
             JSR PLOT    ; Set cursor position
             LDX #0      ; Loop through constant, zero-terminated string
 .loop_bot:  LDA BIG_BOX_BOT,X
+            CMP #0
+            BEQ .end
+            JSR CHROUT
+            INX
+            JMP .loop_bot
+.end        RTS
+
+small_box:  SUBROUTINE
+            CLC
+            LDX #11
+            LDY #14
+            JSR PLOT    ; Set cursor position
+            LDX #0      ; Loop through constant, zero-terminated string
+.loop_top:  LDA SMALL_BOX_TOP,X
             JSR CHROUT
             INX
             CMP #0
-            BNE .loop_bot
-
-            RTS
+            BNE .loop_top
+            CLC
+            LDX #12
+            LDY #14
+            JSR PLOT
+            LDX #0
+.loop_side: LDA SMALL_BOX_SIDE,X
+            JSR CHROUT
+            INX
+            CMP #0
+            BNE .loop_side
+            CLC
+            LDX #13
+            LDY #14
+            JSR PLOT    ; Set cursor position
+            LDX #0      ; Loop through constant, zero-terminated string
+.loop_bot:  LDA SMALL_BOX_BOT,X
+            CMP #0
+            BEQ .end
+            JSR CHROUT
+            INX
+            JMP .loop_bot
+.end        RTS
 
 process_input:  SUBROUTINE
-.wait:          LDA CURSOR_PHASE    ; Wait cursor phase off
-                BNE .wait
-                LDA #CHAR_ENTER
-                JSR CHROUT
                 LDX #0      ; Initialize X as iterator
 .loop:          LDA input,X
                 CMP password,X  ; Compare input at idx X with password at same index
@@ -184,6 +230,10 @@ clear_password: SUBROUTINE
 .end            RTS
 
 pw_correct: SUBROUTINE
+            CLC
+            LDX #16
+            LDY #9
+            JSR PLOT
             LDX #0
 .loop:      LDA PW_CORRECT,X
             JSR CHROUT
@@ -193,9 +243,20 @@ pw_correct: SUBROUTINE
             LDA #CHAR_ENTER
             JSR CHROUT
             JSR pb0_on
+
+            LDA #15
+            ADC c_cnt
+            TAY
+            CLC
+            LDX #12
+            JSR PLOT
             RTS
 
 pw_incorrect:   SUBROUTINE
+                CLC
+                LDX #16
+                LDY #9
+                JSR PLOT
                 LDX #0
 .loop:          LDA PW_INCORRECT,X
                 JSR CHROUT
@@ -204,6 +265,12 @@ pw_incorrect:   SUBROUTINE
                 BNE .loop
                 LDA #CHAR_ENTER
                 JSR CHROUT
+                LDA #15
+                ADC c_cnt
+                TAY
+                CLC
+                LDX #12
+                JSR PLOT
                 RTS
 
 init_gpo:   SUBROUTINE
@@ -282,6 +349,22 @@ bytetohex:  PHA     ; Push A to stack. A preserves value
 ; Constants
 hexits:             BYTE "0123456789ABCDEF"    ; IMPORTANT that characters here are capital letters!
 hello_world_str:    BYTE "HELLO WORLD",0
+title_1:            BYTE "L.O.C.K.",0
+title_2:            BYTE "DIGITAL BOX SECURITY",0
+password:           BYTE "SHPRO1",0
+
+PW_INCORRECT:   BYTE "    ACCESS DENIED!    ",0
+PW_CORRECT:     BYTE "   ACCESS APPROVED!   ",0
+
+RS = $ea
+LS = $f4
+
+BIG_BOX_TOP:    BYTE $cf,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$d0,0
+BIG_BOX_BOT:    BYTE $cc,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,0
+
+SMALL_BOX_TOP:  BYTE $cf,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$b7,$d0,0
+SMALL_BOX_SIDE: BYTE LS,$1d,$1d,$1d,$1d,$1d,$1d,$1d,$1d,$1d,$1d,RS,0
+SMALL_BOX_BOT:  BYTE $cc,$af,$af,$af,$af,$af,$af,$af,$af,$af,$af,$fa,0
 
 ; EOF - Fill up to -$9fff (or $bfff if 16K)
     ORG $9fff
