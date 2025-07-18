@@ -16,18 +16,23 @@ EMULATOR_FALGS = -cartcrt build/$(CRT)
 GREEN := \033[0;32m
 COL_RESET := \033[0m
 
-all: clean crt
-	@echo "$(GREEN)Moving artifacts to build directory...$(COL_RESET)"
-	mv *.crt build
-	mv *.out build
+all: clean padded
+
+padded: crt
+	./append.sh
 
 crt: obj
 	@echo "$(GREEN)Converting to crt...$(COL_RESET)"
 	cartconv -t normal -n "$(PROJ_NAME)" -i $(OBJ) -o $(PROJ_NAME).crt
 
+	@echo "$(GREEN)Moving artifacts to build directory...$(COL_RESET)"
+	mv *.crt build
+	mv *.out build
+
 obj:
 	@echo "$(GREEN)Compiling asm...$(COL_RESET)"
 	$(AS) $(AS_SRC) $(AS_FLAGS)
+
 
 run: all
 	$(EMULATOR) $(EMULATOR_FALGS)
