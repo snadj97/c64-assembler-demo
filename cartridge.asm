@@ -240,10 +240,7 @@ pw_correct: SUBROUTINE
             INX
             CMP #0
             BNE .loop
-            LDA #CHAR_ENTER
-            JSR CHROUT
-            JSR pb0_on
-
+            JSR pb0_off
             LDA #15
             ADC c_cnt
             TAY
@@ -263,9 +260,7 @@ pw_incorrect:   SUBROUTINE
                 INX
                 CMP #0
                 BNE .loop
-                LDA #CHAR_ENTER
-                JSR CHROUT
-                LDA #15
+                LDA #14
                 ADC c_cnt
                 TAY
                 CLC
@@ -276,6 +271,7 @@ pw_incorrect:   SUBROUTINE
 init_gpo:   SUBROUTINE
             LDA #PIN_CFG
             STA CIA2B_DDR
+            JSR pb0_on
             RTS
 
 pb0_on:     SUBROUTINE
@@ -319,6 +315,10 @@ charcolor:  SUBROUTINE
             JMP .comp
 
 test_byte:  SUBROUTINE
+            CLC
+            LDX #20
+            LDY #19
+            JSR PLOT
             LDA CIA2B_DATA        ; Convert a byte value to a hex string (2 chars)...
             JSR bytetohex
             TYA             ; ... and print them to the screen
